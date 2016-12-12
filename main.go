@@ -3,23 +3,32 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 )
 
 var (
+	// flags
+	debug = flag.Bool("debug", false, "print debugging log output to stderr")
+
 	// arguments
 	fromTitle string
 	toTitle   string
 )
 
 func usage() {
-	fmt.Fprintf(os.Stderr, "usage: %s from_title to_title\n", os.Args[0])
+	fmt.Fprintf(os.Stderr, "usage: %s [-debug] from_title to_title\n\n", os.Args[0])
+	flag.PrintDefaults()
 }
 
 func init() {
 	flag.Usage = usage
 	flag.Parse()
+
+	if !*debug {
+		log.SetOutput(ioutil.Discard)
+	}
 
 	fromTitle = flag.Arg(0)
 	toTitle = flag.Arg(1)
