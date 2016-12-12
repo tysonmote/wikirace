@@ -57,6 +57,9 @@ func LinksHere(titles []string) chan Links {
 	return allLinks("lh", "linkshere", titles)
 }
 
+// allLinks batches API requests to fetch the maximum number of results allowed
+// by Wikipedia and then sends Links objects containing those responses from
+// Wikipedia on the returned channel.
 func allLinks(prefix, prop string, titles []string) chan Links {
 	c := make(chan Links)
 
@@ -73,10 +76,12 @@ func allLinks(prefix, prop string, titles []string) chan Links {
 				queryURL := buildQueryURL(prefix, prop, titlesBatch, cont)
 				body, err := get(queryURL)
 				if err != nil {
-					// TODO exponential backoff?
+					// If Wikipedia returns an error, just panic instead of doing an
+					// exponential back-off.
 					panic(err)
 				}
 
+				// Parse the response.
 				resp := linksResponse{prefix: prefix, prop: prop}
 				err = json.Unmarshal(body, &resp)
 				if err != nil {

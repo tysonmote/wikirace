@@ -25,6 +25,8 @@ var (
 	client = &http.Client{Timeout: 5 * time.Second}
 )
 
+// -- util functions
+
 // batch returns the given slice as batches with a maximum size.
 func batch(s []string, max int) [][]string {
 	batches := [][]string{}

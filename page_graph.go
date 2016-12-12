@@ -7,28 +7,6 @@ import (
 	"github.com/tysontate/wikirace/api"
 )
 
-type safeStringMap struct {
-	strings map[string]string
-	sync.RWMutex
-}
-
-func newSafeStringMap() safeStringMap {
-	return safeStringMap{map[string]string{}, sync.RWMutex{}}
-}
-
-func (m *safeStringMap) Get(key string) (value string, exists bool) {
-	m.RLock()
-	defer m.RUnlock()
-	value, exists = m.strings[key]
-	return
-}
-
-func (m *safeStringMap) Set(key, value string) {
-	m.Lock()
-	defer m.Unlock()
-	m.strings[key] = value
-}
-
 // PageGraph represents a graph of Wikipedia pages that is built using
 // a bidirectional breadth-first search (forwards from a starting page and
 // backwards from an ending page).
@@ -49,6 +27,7 @@ type PageGraph struct {
 	backwardQueue []string
 }
 
+// NewPageGraph allocates and returns a PageGraph ready to search.
 func NewPageGraph() PageGraph {
 	return PageGraph{
 		forward:       newSafeStringMap(),
@@ -63,8 +42,8 @@ func NewPageGraph() PageGraph {
 func (pg *PageGraph) Search(from, to string) []string {
 	midpoint := make(chan string)
 
-	go func() { midpoint <- pg.SearchForward(from) }()
-	go func() { midpoint <- pg.SearchBackward(to) }()
+	go func() { midpoint <- pg.searchForward(from) }()
+	go func() { midpoint <- pg.searchBackward(to) }()
 
 	return pg.path(<-midpoint)
 }
@@ -84,7 +63,7 @@ func (pg *PageGraph) path(midpoint string) []string {
 		path[i], path[swap] = path[swap], path[i]
 	}
 
-	// Pop off midpoint because following loop adds it back in
+	// Pop off midpoint because the following loop adds it back in
 	path = path[0 : len(path)-1]
 
 	// Add path from midpoint to end
@@ -98,8 +77,7 @@ func (pg *PageGraph) path(midpoint string) []string {
 	return path
 }
 
-// Returns midpoint node, if full path is found
-func (pg *PageGraph) SearchForward(from string) string {
+func (pg *PageGraph) searchForward(from string) string {
 	pg.forward.Set(from, "")
 	pg.forwardQueue = append(pg.forwardQueue, from)
 
@@ -118,7 +96,7 @@ func (pg *PageGraph) SearchForward(from string) string {
 		}
 	}
 
-	log.Println("forward queue is empty, returning")
+	log.Println("FORWARD QUEUE EMPTY")
 	return ""
 }
 
@@ -136,8 +114,7 @@ func (pg *PageGraph) checkForward(from, to string) (done bool) {
 	return done
 }
 
-// Returns midpoint node, if full path is found
-func (pg *PageGraph) SearchBackward(to string) string {
+func (pg *PageGraph) searchBackward(to string) string {
 	pg.backward.Set(to, "")
 	pg.backwardQueue = append(pg.backwardQueue, to)
 
@@ -156,7 +133,7 @@ func (pg *PageGraph) SearchBackward(to string) string {
 		}
 	}
 
-	log.Println("backward queue is empty, returning")
+	log.Println("BACKWARD QUEUE EMPTY")
 	return ""
 }
 
@@ -172,4 +149,30 @@ func (pg *PageGraph) checkBackward(from, to string) (done bool) {
 	// If we now have a path to the source, we're done!
 	_, done = pg.forward.Get(to)
 	return done
+}
+
+// -- safeStringMap
+
+// safeStringMap is a helper type that wraps a map[string]string with
+// a sync.RWMutex.
+type safeStringMap struct {
+	strings map[string]string
+	sync.RWMutex
+}
+
+func newSafeStringMap() safeStringMap {
+	return safeStringMap{map[string]string{}, sync.RWMutex{}}
+}
+
+func (m *safeStringMap) Get(key string) (value string, exists bool) {
+	m.RLock()
+	defer m.RUnlock()
+	value, exists = m.strings[key]
+	return
+}
+
+func (m *safeStringMap) Set(key, value string) {
+	m.Lock()
+	defer m.Unlock()
+	m.strings[key] = value
 }
