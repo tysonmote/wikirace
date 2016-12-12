@@ -100,6 +100,7 @@ func (pg *PageGraph) path(midpoint string) []string {
 
 // Returns midpoint node, if full path is found
 func (pg *PageGraph) SearchForward(from string) string {
+	pg.forward.Set(from, "")
 	pg.forwardQueue = append(pg.forwardQueue, from)
 
 	for len(pg.forwardQueue) != 0 {
@@ -137,6 +138,7 @@ func (pg *PageGraph) checkForward(from, to string) (done bool) {
 
 // Returns midpoint node, if full path is found
 func (pg *PageGraph) SearchBackward(to string) string {
+	pg.backward.Set(to, "")
 	pg.backwardQueue = append(pg.backwardQueue, to)
 
 	for len(pg.backwardQueue) != 0 {
