@@ -30,6 +30,11 @@ func (pl Links) add(from, to string) {
 		return
 	}
 
+	// The API can return pages that link to themselves. We should ignore them.
+	if from == to {
+		return
+	}
+
 	if _, ok := pl[from]; !ok {
 		pl[from] = []string{}
 	}
