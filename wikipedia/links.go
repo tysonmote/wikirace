@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-// Links is a from-to mapping of directional links using page titles.
+// Links is a mapping of directional page links using page titles.
 type Links map[string][]string
 
 func (pl Links) add(from, to string) {
@@ -15,10 +15,18 @@ func (pl Links) add(from, to string) {
 	pl[from] = append(pl[from], to)
 }
 
+// LinksFrom takes one or more Wikipedia page titles and returns a channel that
+// will receive one or more Links objects, each containing partial or full
+// mappings of page to linked page. The channel will be closed after all
+// results have been fetched.
 func LinksFrom(titles []string) chan Links {
 	return allLinks("pl", "links", titles)
 }
 
+// LinksFrom takes one or more Wikipedia page titles and returns a channel that
+// will receive one or more Links objects, each containing partial or full
+// mappings of linked page to source page. The channel will be closed after all
+// results have been fetched.
 func LinksHere(titles []string) chan Links {
 	return allLinks("lh", "linkshere", titles)
 }
@@ -61,6 +69,8 @@ func allLinks(prefix, prop string, titles []string) chan Links {
 
 // -- api response format
 
+// linksResponse encapsulates Wikipedia's query API response with either
+// "links" or "linkshere" properties enumerated.
 type linksResponse struct {
 	prefix   string
 	prop     string
@@ -78,7 +88,9 @@ func (r *linksResponse) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// extractContinue gets the continue string from the structure:
+// extractContinue takes as input a Wikipedia API query response and returns
+// the "continue" string. If no continue string is set, an empty string is
+// returned.
 //
 //   {
 //     "continue": {
@@ -94,6 +106,10 @@ func extractContinue(data map[string]interface{}, subkey string) string {
 	return ""
 }
 
+// extractLinks takes as input a Wikipedia API query response with either
+// "links" or "linkshere" properties enumerated for a set of pages and returns
+// a complete Links representation of that response.
+//
 //   {
 //     ...
 //     "query": {
@@ -110,7 +126,7 @@ func extractContinue(data map[string]interface{}, subkey string) string {
 //     }
 //   }
 func extractLinks(data map[string]interface{}, subkey string) Links {
-	pl := Links{}
+	links := Links{}
 
 	query := data["query"].(map[string]interface{})
 	pages := query["pages"].(map[string]interface{})
@@ -122,10 +138,10 @@ func extractLinks(data map[string]interface{}, subkey string) Links {
 		if ok {
 			for _, link := range linksSlice {
 				linkMap := link.(map[string]interface{})
-				pl.add(fromTitle, linkMap["title"].(string))
+				links.add(fromTitle, linkMap["title"].(string))
 			}
 		}
 	}
 
-	return pl
+	return links
 }
