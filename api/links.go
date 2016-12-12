@@ -10,14 +10,18 @@ var (
 	// excluded.
 	boring = map[string]bool{
 		// Authority control section
+		"Biblioteca Nacional de España":          true,
 		"Bibliothèque nationale de France":       true,
 		"Digital object identifier":              true,
 		"Integrated Authority File":              true,
 		"International Standard Book Number":     true,
 		"International Standard Name Identifier": true,
+		"LIBRIS": true,
 		"Library of Congress Control Number":     true,
 		"MusicBrainz":                            true,
 		"National Diet Library":                  true,
+		"National Library of the Czech Republic": true,
+		"PubMed Central":                         true,
 		"Virtual International Authority File":   true,
 	}
 )
