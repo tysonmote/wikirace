@@ -5,10 +5,31 @@ import (
 	"fmt"
 )
 
+var (
+	// These page titles lead to boring wikirace path results and are, thus,
+	// excluded.
+	boring = map[string]bool{
+		// Authority control section
+		"Bibliothèque nationale de France":       true,
+		"Digital object identifier":              true,
+		"Integrated Authority File":              true,
+		"International Standard Book Number":     true,
+		"International Standard Name Identifier": true,
+		"Library of Congress Control Number":     true,
+		"MusicBrainz":                            true,
+		"National Diet Library":                  true,
+		"Virtual International Authority File":   true,
+	}
+)
+
 // Links is a mapping of directional page links using page titles.
 type Links map[string][]string
 
 func (pl Links) add(from, to string) {
+	if boring[from] || boring[to] {
+		return
+	}
+
 	if _, ok := pl[from]; !ok {
 		pl[from] = []string{}
 	}
