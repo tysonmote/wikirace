@@ -7,6 +7,28 @@ import (
 	"github.com/tysontate/wikirace/wikipedia"
 )
 
+type safeStringMap struct {
+	strings map[string]string
+	sync.RWMutex
+}
+
+func newSafeStringMap() safeStringMap {
+	return safeStringMap{map[string]string{}, sync.RWMutex{}}
+}
+
+func (m *safeStringMap) Get(key string) (value string, exists bool) {
+	m.RLock()
+	defer m.RUnlock()
+	value, exists = m.strings[key]
+	return
+}
+
+func (m *safeStringMap) Set(key, value string) {
+	m.Lock()
+	defer m.Unlock()
+	m.strings[key] = value
+}
+
 // PageGraph represents a graph of Wikipedia pages that is built using
 // a bidirectional breadth-first search (forwards from a starting page and
 // backwards from an ending page).
@@ -15,27 +37,23 @@ import (
 // have two simultaneous API requests running against Wikipedia at a time.
 type PageGraph struct {
 	// map of page titles to their parent page title
-	forward map[string]string
+	forward safeStringMap
 
 	// queue of pages to search forwards from
 	forwardQueue []string
 
 	// map of page titles to their child page title
-	backward map[string]string
+	backward safeStringMap
 
 	// queue of pages to search backwards from
 	backwardQueue []string
-
-	// For simplicity's sake, all maps share a lock. If lock contention is
-	// a problem, we can split this in to two locks.
-	sync.RWMutex
 }
 
 func NewPageGraph() PageGraph {
 	return PageGraph{
-		forward:       map[string]string{},
+		forward:       newSafeStringMap(),
 		forwardQueue:  []string{},
-		backward:      map[string]string{},
+		backward:      newSafeStringMap(),
 		backwardQueue: []string{},
 	}
 }
@@ -57,8 +75,9 @@ func (pg *PageGraph) path(midpoint string) []string {
 	// Build path from start to midpoint
 	cursor := midpoint
 	for len(cursor) > 0 {
+		log.Printf("FOUND PATH FORWARD: %#v", cursor)
 		path = append(path, cursor)
-		cursor = pg.forward[cursor]
+		cursor, _ = pg.forward.Get(cursor)
 	}
 	for i := 0; i < len(path)/2; i++ {
 		swap := len(path) - i - 1
@@ -71,8 +90,9 @@ func (pg *PageGraph) path(midpoint string) []string {
 	// Add path from midpoint to end
 	cursor = midpoint
 	for len(cursor) > 0 {
+		log.Printf("FOUND PATH BACKWARDS: %#v", cursor)
 		path = append(path, cursor)
-		cursor = pg.backward[cursor]
+		cursor, _ = pg.backward.Get(cursor)
 	}
 
 	return path
@@ -85,6 +105,7 @@ func (pg *PageGraph) SearchForward(from string) string {
 	for len(pg.forwardQueue) != 0 {
 		pages := pg.forwardQueue
 		pg.forwardQueue = []string{}
+		log.Printf("SEARCHING FORWARD: %#v", pages)
 		for links := range wikipedia.LinksFrom(pages) {
 			for from, tos := range links {
 				for _, to := range tos {
@@ -101,23 +122,16 @@ func (pg *PageGraph) SearchForward(from string) string {
 }
 
 func (pg *PageGraph) checkForward(from, to string) (done bool) {
-	pg.RLock()
-	_, ok := pg.forward[to]
-	pg.RUnlock()
-	if !ok {
+	_, exists := pg.forward.Get(to)
+	if !exists {
 		log.Printf("FORWARD %#v -> %#v", from, to)
 		// "to" page doesn't have a path to the source yet.
-		pg.Lock()
-		pg.forward[to] = from
+		pg.forward.Set(to, from)
 		pg.forwardQueue = append(pg.forwardQueue, to)
-		pg.Unlock()
 	}
 
 	// If we now have a path to the destination, we're done!
-	pg.RLock()
-	_, done = pg.backward[to]
-	pg.RUnlock()
-
+	_, done = pg.backward.Get(to)
 	return done
 }
 
@@ -128,6 +142,7 @@ func (pg *PageGraph) SearchBackward(to string) string {
 	for len(pg.backwardQueue) != 0 {
 		pages := pg.backwardQueue
 		pg.backwardQueue = []string{}
+		log.Printf("SEARCHING BACKWARD: %#v", pages)
 		for links := range wikipedia.LinksFrom(pages) {
 			for to, froms := range links {
 				for _, from := range froms {
@@ -144,21 +159,15 @@ func (pg *PageGraph) SearchBackward(to string) string {
 }
 
 func (pg *PageGraph) checkBackward(from, to string) (done bool) {
-	pg.RLock()
-	_, ok := pg.backward[from]
-	pg.RUnlock()
-	if !ok {
+	_, exists := pg.backward.Get(from)
+	if !exists {
 		log.Printf("BACKWARD %#v -> %#v", from, to)
 		// "from" page doesn't have a path to the destination yet.
-		pg.Lock()
-		pg.backward[from] = to
+		pg.backward.Set(from, to)
 		pg.backwardQueue = append(pg.backwardQueue, from)
-		pg.Unlock()
 	}
 
 	// If we now have a path to the source, we're done!
-	pg.RLock()
-	_, done = pg.forward[to]
-	pg.RUnlock()
+	_, done = pg.forward.Get(to)
 	return done
 }
