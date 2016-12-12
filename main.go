@@ -40,21 +40,8 @@ func init() {
 }
 
 func main() {
-	forwardGraph := NewPageGraph(fromTitle)
-	forwardQueue := NewStringQueue()
-	forwardQueue.Enqueue(fromTitle)
-
-	for !forwardQueue.IsEmpty() {
-		title := forwardQueue.Dequeue()
-		log.Printf("VISIT %#v", title)
-		for _, link := range forwardGraph.UnvisitedLinks(title) {
-			if link == toTitle {
-				for _, title := range forwardGraph.Path(link) {
-					fmt.Println(title)
-				}
-				os.Exit(1)
-			}
-			forwardQueue.Enqueue(link)
-		}
+	graph := NewPageGraph()
+	for _, page := range graph.Search(fromTitle, toTitle) {
+		fmt.Println(page)
 	}
 }
