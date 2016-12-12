@@ -4,7 +4,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/tysontate/wikirace/wikipedia"
+	"github.com/tysontate/wikirace/api"
 )
 
 type safeStringMap struct {
@@ -106,7 +106,7 @@ func (pg *PageGraph) SearchForward(from string) string {
 		pages := pg.forwardQueue
 		pg.forwardQueue = []string{}
 		log.Printf("SEARCHING FORWARD: %#v", pages)
-		for links := range wikipedia.LinksFrom(pages) {
+		for links := range api.LinksFrom(pages) {
 			for from, tos := range links {
 				for _, to := range tos {
 					if pg.checkForward(from, to) {
@@ -143,7 +143,7 @@ func (pg *PageGraph) SearchBackward(to string) string {
 		pages := pg.backwardQueue
 		pg.backwardQueue = []string{}
 		log.Printf("SEARCHING BACKWARD: %#v", pages)
-		for links := range wikipedia.LinksFrom(pages) {
+		for links := range api.LinksFrom(pages) {
 			for to, froms := range links {
 				for _, from := range froms {
 					if pg.checkBackward(from, to) {
