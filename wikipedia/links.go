@@ -119,15 +119,11 @@ func extractLinks(data map[string]interface{}, subkey string) Links {
 		fromTitle := pageMap["title"].(string)
 
 		linksSlice, ok := pageMap[subkey].([]interface{})
-		if !ok {
-			// Return early because this API response does not have the subkey and
-			// there's no need to check every page.
-			return pl
-		}
-
-		for _, link := range linksSlice {
-			linkMap := link.(map[string]interface{})
-			pl.add(fromTitle, linkMap["title"].(string))
+		if ok {
+			for _, link := range linksSlice {
+				linkMap := link.(map[string]interface{})
+				pl.add(fromTitle, linkMap["title"].(string))
+			}
 		}
 	}
 
