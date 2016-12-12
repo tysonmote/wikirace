@@ -18,7 +18,7 @@ const (
 	// We only care about primary Wikipedia pages, not meta pages like "Talk",
 	// etc. All namespaces are documented here:
 	// https://en.wikipedia.org/wiki/Wikipedia:Namespace
-	namespace = "0"
+	namespace = "0|14|100"
 )
 
 var (
