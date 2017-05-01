@@ -27,7 +27,7 @@ Pokémon
 ## Building
 
 wikirace has no external dependencies. Just fetch and build with: `go get
-github.com/tysontate/wikirace`
+github.com/tysonmote/wikirace`
 
 ## Running
 
